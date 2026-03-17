@@ -2,7 +2,7 @@
 ## Title: Companion Keeper
 ## Notes: Re-summons a chosen companion pet when it disappears.
 ## Author: OpenAI Codex
-## Version: 1.0.0
+## Version: 1.0.1
 ## IconTexture: Interface\AddOns\CompanionKeeper\Media\companionkeeper.png
 ## SavedVariables: CompanionKeeperDB
 

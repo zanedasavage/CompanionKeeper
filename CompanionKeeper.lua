@@ -18,6 +18,7 @@ local settingsPanel
 local petListSelectionGUID
 local RefreshSettingsPanel
 local RefreshPetList
+local collectedPetsCache
 
 local function IsPetSummonable(petGUID)
     return petGUID and C_PetJournal.PetIsSummonable and C_PetJournal.PetIsSummonable(petGUID)
@@ -189,6 +190,10 @@ local function GetCollectedPets()
     RestorePetJournalFilters(savedFilters)
 
     return pets
+end
+
+local function RefreshCollectedPetsCache()
+    collectedPetsCache = GetCollectedPets()
 end
 
 local function FindPetByName(name)
@@ -406,7 +411,7 @@ local function CreateLabel(parent, text, template, x, y)
 end
 
 local function BuildPetList(searchText)
-    local pets = GetCollectedPets()
+    local pets = collectedPetsCache or GetCollectedPets()
     local rows = {}
     local normalizedSearch = NormalizeName(searchText or "")
 
@@ -769,6 +774,7 @@ local function CreateSettingsPanel()
     frame.currentButton:SetScript("OnClick", function()
         SetCurrentPet()
         petListSelectionGUID = GetDB().petGUID
+        RefreshCollectedPetsCache()
         RefreshSettingsPanel()
     end)
 
@@ -793,6 +799,7 @@ local function CreateSettingsPanel()
         if petName then
             frame.petNameBox:SetText(petName)
             SetPetByName(petName)
+            RefreshCollectedPetsCache()
             RefreshSettingsPanel()
         end
     end)
@@ -842,7 +849,10 @@ local function CreateSettingsPanel()
     frame.previewEmpty:SetJustifyH("LEFT")
     frame.previewEmpty:SetText("Select a companion pet to preview it here.")
 
-    frame:SetScript("OnShow", RefreshSettingsPanel)
+    frame:SetScript("OnShow", function()
+        RefreshCollectedPetsCache()
+        RefreshSettingsPanel()
+    end)
 
     settingsPanel = frame
     return frame
@@ -935,7 +945,7 @@ local function HandleSlashCommand(message)
 end
 
 function CompanionKeeper:OnEvent(event)
-     if event == "PLAYER_LOGIN" then
+    if event == "PLAYER_LOGIN" then
         GetDB()
         RegisterSettingsPanel()
         self:RegisterEvent("PLAYER_ENTERING_WORLD")
@@ -944,17 +954,12 @@ function CompanionKeeper:OnEvent(event)
         self:RegisterEvent("PLAYER_REGEN_ENABLED")
         self:RegisterEvent("PLAYER_ALIVE")
         self:RegisterEvent("ZONE_CHANGED_NEW_AREA")
-        self:RegisterEvent("PET_JOURNAL_LIST_UPDATE")
         self:RegisterEvent("UPDATE_SUMMONPETS_ACTION")
         ScheduleCheck(3, "login")
         return
     end
 
-    if event == "PET_JOURNAL_LIST_UPDATE" and not GetDB().petGUID and not GetDB().useFavorites then
-        return
-    end
-
-    if pendingCheck or event == "PLAYER_ENTERING_WORLD" or event == "PLAYER_CONTROL_GAINED" or event == "PLAYER_MOUNT_DISPLAY_CHANGED" or event == "PLAYER_REGEN_ENABLED" or event == "PLAYER_ALIVE" or event == "ZONE_CHANGED_NEW_AREA" or event == "UPDATE_SUMMONPETS_ACTION" or event == "PET_JOURNAL_LIST_UPDATE" then
+    if pendingCheck or event == "PLAYER_ENTERING_WORLD" or event == "PLAYER_CONTROL_GAINED" or event == "PLAYER_MOUNT_DISPLAY_CHANGED" or event == "PLAYER_REGEN_ENABLED" or event == "PLAYER_ALIVE" or event == "ZONE_CHANGED_NEW_AREA" or event == "UPDATE_SUMMONPETS_ACTION" then
         ScheduleCheck(GetDB().delaySeconds, event)
     end
 
